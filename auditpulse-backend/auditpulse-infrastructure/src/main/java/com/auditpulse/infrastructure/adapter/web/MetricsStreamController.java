@@ -30,6 +30,7 @@ public class MetricsStreamController {
     @GetMapping(value = "/api/v1/stream/metrics", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<MetricsSnapshot>> streamMetrics() {
         return Flux.interval(Duration.ofMillis(1000))
+                .startWith(0L)
                 .map(tick -> ServerSentEvent.<MetricsSnapshot>builder()
                         .event("metrics")
                         .data(streamMetricsUseCase.getSnapshot())

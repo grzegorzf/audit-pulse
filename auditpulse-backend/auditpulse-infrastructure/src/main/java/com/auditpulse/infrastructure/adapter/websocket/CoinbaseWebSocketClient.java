@@ -61,25 +61,33 @@ public class CoinbaseWebSocketClient {
                 .uri(wsUri)
                 .handle((inbound, outbound) -> {
                     log.info("Connected to Coinbase WebSocket. Sending subscription...");
-                    Mono<Void> sendSub = outbound.sendString(Mono.just(SUBSCRIPTION_PAYLOAD)).then();
-
-                    Mono<Void> receiveFlux = inbound.receiveFrames()
-                            .filter(frame -> frame instanceof TextWebSocketFrame)
-                            .cast(TextWebSocketFrame.class)
-                            .map(TextWebSocketFrame::text)
-                            .doOnNext(this::processMessage)
-                            .doOnError(err -> log.warn("Error in WS receive stream: {}", err.getMessage()))
-                            .then();
-
-                    return Mono.zip(sendSub, receiveFlux).then();
+                    return outbound.sendString(Mono.just(SUBSCRIPTION_PAYLOAD))
+                            .then(inbound.receiveFrames()
+                                    .doOnNext(frame -> {
+                                        if (frame instanceof TextWebSocketFrame textFrame) {
+                                            processMessage(textFrame.text());
+                                        }
+                                    })
+                                    .doOnError(err -> log.warn("Error in WS receive stream: {}", err.getMessage()))
+                                    .then());
                 })
                 .retryWhen(reactor.util.retry.Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1))
                         .maxBackoff(Duration.ofSeconds(10))
                         .doBeforeRetry(retrySignal -> log.warn("WS disconnected. Retrying connection (attempt {})...", retrySignal.totalRetries() + 1)))
                 .subscribe(
                         null,
-                        error -> log.error("Fatal error in WebSocket client: {}", error.getMessage(), error),
-                        () -> log.info("WebSocket connection completed")
+                        error -> {
+                            log.error("Fatal error in WebSocket client: {}", error.getMessage(), error);
+                            if (running.get()) {
+                                connectWithRetry();
+                            }
+                        },
+                        () -> {
+                            log.info("WebSocket connection completed. Reconnecting...");
+                            if (running.get()) {
+                                connectWithRetry();
+                            }
+                        }
                 );
     }
 

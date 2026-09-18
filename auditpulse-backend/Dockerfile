@@ -23,7 +23,7 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:25-jre
 WORKDIR /app
 
-RUN useradd -m -u 1000 -s /bin/bash auditpulse
+RUN useradd -m -s /bin/bash auditpulse
 USER auditpulse
 
 COPY --from=builder /workspace/auditpulse-boot/target/auditpulse-boot-1.0.0-SNAPSHOT.jar app.jar

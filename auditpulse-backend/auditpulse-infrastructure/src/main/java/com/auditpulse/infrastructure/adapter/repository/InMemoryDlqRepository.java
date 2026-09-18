@@ -5,6 +5,7 @@ import com.auditpulse.domain.model.ProductPair;
 import com.auditpulse.domain.port.DlqRepositoryPort;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,11 +48,13 @@ public class InMemoryDlqRepository implements DlqRepositoryPort {
 
     @Override
     public List<DeadLetter> findAll(int offset, int limit) {
-        List<DeadLetter> result = new ArrayList<>();
-        // Iterate newest to oldest
         List<String> ids = new ArrayList<>(chronologicalIds);
         int total = ids.size();
-        int start = Math.max(0, total - 1 - offset);
+        if (total == 0 || offset >= total) {
+            return Collections.emptyList();
+        }
+        List<DeadLetter> result = new ArrayList<>();
+        int start = total - 1 - offset;
         int count = 0;
 
         for (int i = start; i >= 0 && count < limit; i--) {
@@ -66,8 +69,11 @@ public class InMemoryDlqRepository implements DlqRepositoryPort {
 
     @Override
     public List<DeadLetter> findByProduct(ProductPair productPair, int offset, int limit) {
-        List<DeadLetter> result = new ArrayList<>();
         List<String> ids = new ArrayList<>(chronologicalIds);
+        if (ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<DeadLetter> result = new ArrayList<>();
         int skipped = 0;
 
         for (int i = ids.size() - 1; i >= 0 && result.size() < limit; i--) {

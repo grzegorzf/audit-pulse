@@ -42,28 +42,13 @@ public class AuditPulseConfig {
     }
 
     @Bean
-    public TradeEventPublisherPort tradeEventPublisherPort(ReactiveTradeEventPublisher publisher) {
-        return publisher;
-    }
-
-    @Bean
     public InMemoryDlqRepository inMemoryDlqRepository() {
         return new InMemoryDlqRepository();
     }
 
     @Bean
-    public DlqRepositoryPort dlqRepositoryPort(InMemoryDlqRepository repository) {
-        return repository;
-    }
-
-    @Bean
     public RingBufferMetricsAggregator ringBufferMetricsAggregator() {
         return new RingBufferMetricsAggregator();
-    }
-
-    @Bean
-    public MetricsPort metricsPort(RingBufferMetricsAggregator aggregator) {
-        return aggregator;
     }
 
     @Bean

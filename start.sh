@@ -38,4 +38,14 @@ echo ""
 
 # 2. Build images with no-cache and launch containers
 docker compose build --no-cache
-docker compose up --remove-orphans
+docker compose up -d --remove-orphans
+
+echo ""
+echo "=========================================================="
+echo " ✨ AuditPulse successfully started!"
+echo " 🌐 Terminal UI:     http://localhost:${FRONTEND_PORT}"
+echo " ⚡ Backend Stream:  http://localhost:${BACKEND_PORT}/api/v1/stream/trades"
+echo " 📊 Metrics:         http://localhost:${BACKEND_PORT}/api/v1/metrics"
+echo " To view live logs:  docker compose logs -f"
+echo " To stop services:   ./delete.sh"
+echo "=========================================================="

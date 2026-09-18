@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Reactive SSE Controller streaming live market trades to terminal clients.
@@ -42,10 +43,16 @@ public class TradeStreamController {
             stream = eventPublisher.getTradeStream();
         }
 
-        return stream.map(trade -> ServerSentEvent.<TradeMatch>builder()
+        Flux<ServerSentEvent<TradeMatch>> tradesFlux = stream.map(trade -> ServerSentEvent.<TradeMatch>builder()
                 .id(String.valueOf(trade.tradeId()))
                 .event("trade")
                 .data(trade)
                 .build());
+
+        ServerSentEvent<TradeMatch> initEvent = ServerSentEvent.<TradeMatch>builder()
+                .comment("connected")
+                .build();
+
+        return Flux.concat(Mono.just(initEvent), tradesFlux);
     }
 }

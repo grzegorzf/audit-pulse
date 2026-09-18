@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -53,11 +54,17 @@ public class DlqController {
      */
     @GetMapping(value = "/api/v1/stream/dlq", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<DomainEvent>> streamDlq() {
-        return eventPublisher.getAnomalyStream()
+        Flux<ServerSentEvent<DomainEvent>> anomalyFlux = eventPublisher.getAnomalyStream()
                 .map(event -> ServerSentEvent.<DomainEvent>builder()
                         .event("anomaly")
                         .data(event)
                         .build());
+
+        ServerSentEvent<DomainEvent> initEvent = ServerSentEvent.<DomainEvent>builder()
+                .comment("connected")
+                .build();
+
+        return Flux.concat(Mono.just(initEvent), anomalyFlux);
     }
 
     /**

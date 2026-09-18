@@ -164,12 +164,21 @@ export default function TradeStreamTable() {
     overscan: 25,
   });
 
-  const formatTime = (iso: string) => {
+  const formatTime = (time: string | number) => {
     try {
-      const d = new Date(iso);
+      let ms: number;
+      if (typeof time === 'number') {
+        ms = time < 1e11 ? Math.floor(time * 1000) : Math.floor(time);
+      } else if (!isNaN(Number(time))) {
+        const num = Number(time);
+        ms = num < 1e11 ? Math.floor(num * 1000) : Math.floor(num);
+      } else {
+        ms = new Date(time).getTime();
+      }
+      const d = new Date(ms);
       return d.toTimeString().split(' ')[0] + '.' + String(d.getMilliseconds()).padStart(3, '0');
     } catch {
-      return iso;
+      return String(time);
     }
   };
 

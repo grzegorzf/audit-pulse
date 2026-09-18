@@ -19,8 +19,8 @@
     </modules>
 
     <properties>
-        <java.version>25</java.version>
-        <maven.compiler.release>25</maven.compiler.release>
+        <java.version>21</java.version>
+        <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <spring-boot.version>3.4.3</spring-boot.version>
@@ -80,7 +80,7 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${maven-compiler-plugin.version}</version>
                     <configuration>
-                        <release>25</release>
+                        <release>${maven.compiler.release}</release>
                         <compilerArgs>
                             <arg>-parameters</arg>
                         </compilerArgs>
@@ -91,7 +91,7 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
-                        <argLine>-Dspring.classformat.ignore=true</argLine>
+                        <argLine>-XX:+EnableDynamicAgentLoading -Dspring.classformat.ignore=true</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
