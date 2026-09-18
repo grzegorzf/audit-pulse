@@ -180,6 +180,7 @@ const styles = stylex.create({
     fontFamily: typography.fontMono,
     fontSize: '11px',
     cursor: 'pointer',
+    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
   },
   reconcileBtn: {
     backgroundColor: colors.neonGreenBg,
@@ -196,6 +197,7 @@ const styles = stylex.create({
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
+    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
   },
   reconcileBtnDone: {
     backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -211,6 +213,16 @@ export default function JsonDiffModal() {
   const [copied, setCopied] = useState(false);
 
   if (!selectedDlqItem) return null;
+
+  const closeModal = () => {
+    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+      (document as any).startViewTransition(() => {
+        setSelectedDlqItem(null);
+      });
+    } else {
+      setSelectedDlqItem(null);
+    }
+  };
 
   const delta =
     selectedDlqItem.receivedSequence && selectedDlqItem.expectedSequence
@@ -228,8 +240,8 @@ export default function JsonDiffModal() {
   };
 
   return (
-    <div {...stylex.props(styles.overlay)} onClick={() => setSelectedDlqItem(null)}>
-      <div {...stylex.props(styles.modal)} onClick={(e) => e.stopPropagation()}>
+    <div {...stylex.props(styles.overlay)} onClick={closeModal}>
+      <div className="modal-surface tabular-nums" {...stylex.props(styles.modal)} onClick={(e) => e.stopPropagation()}>
         {/* Modal Header */}
         <div {...stylex.props(styles.header)}>
           <div {...stylex.props(styles.headerTitle)}>
@@ -237,8 +249,9 @@ export default function JsonDiffModal() {
             <span>DLQ ANOMALY INSPECTOR // ID: {selectedDlqItem.id}</span>
           </div>
           <button
-            onClick={() => setSelectedDlqItem(null)}
+            onClick={closeModal}
             {...stylex.props(styles.closeBtn)}
+            title="Close modal (Esc)"
           >
             <X size={16} />
           </button>
@@ -315,7 +328,7 @@ export default function JsonDiffModal() {
         {/* Modal Footer */}
         <div {...stylex.props(styles.footer)}>
           <button
-            onClick={() => setSelectedDlqItem(null)}
+            onClick={closeModal}
             {...stylex.props(styles.secondaryBtn)}
           >
             Close

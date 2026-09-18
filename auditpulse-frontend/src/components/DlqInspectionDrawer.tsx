@@ -180,6 +180,16 @@ export default function DlqInspectionDrawer() {
   const dlqItems = useStreamStore((s) => s.dlqItems);
   const setSelectedDlqItem = useStreamStore((s) => s.setSelectedDlqItem);
 
+  const handleSelectDlqItem = (item: DeadLetter) => {
+    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+      (document as any).startViewTransition(() => {
+        setSelectedDlqItem(item);
+      });
+    } else {
+      setSelectedDlqItem(item);
+    }
+  };
+
   const getReasonStyle = (reason: string) => {
     switch (reason) {
       case 'GAP_DETECTED':
@@ -196,7 +206,7 @@ export default function DlqInspectionDrawer() {
   };
 
   return (
-    <div {...stylex.props(styles.drawer)}>
+    <div className="dlq-drawer-root" {...stylex.props(styles.drawer)}>
       {/* Upper Sparkline Section */}
       <div {...stylex.props(styles.upperSection)}>
         <ThroughputSparkline />
@@ -209,6 +219,38 @@ export default function DlqInspectionDrawer() {
             <ShieldAlert size={14} /> Quarantined DLQ Queue
           </span>
           <span {...stylex.props(styles.badgeCount)}>{dlqItems.length} entries</span>
+        </div>
+
+        {/* Educational DDD Invariant Callout */}
+        <div
+          style={{
+            margin: '8px 12px 6px 12px',
+            padding: '7px 10px',
+            backgroundColor: 'rgba(139, 92, 246, 0.08)',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: 'rgba(139, 92, 246, 0.28)',
+            borderLeftWidth: '3px',
+            borderLeftColor: '#8b5cf6',
+            borderRadius: '4px',
+            fontFamily: 'ui-monospace, monospace',
+          }}
+        >
+          <div
+            style={{
+              fontSize: '9px',
+              fontWeight: 750,
+              letterSpacing: '0.12em',
+              color: '#b388ff',
+              textTransform: 'uppercase',
+              marginBottom: '2px',
+            }}
+          >
+            DDD Aggregate Boundary · Monotonic Invariant
+          </div>
+          <p style={{ fontSize: '10px', lineHeight: 1.4, color: '#d4ced9', margin: 0 }}>
+            Trades must satisfy <code style={{ color: '#00ff88' }}>receivedSeq == expectedSeq</code>. Sequence jumps quarantine to DLQ without halting tape throughput.
+          </p>
         </div>
 
         <div {...stylex.props(styles.tableHeader)}>
@@ -237,7 +279,8 @@ export default function DlqInspectionDrawer() {
               return (
                 <div
                   key={item.id}
-                  onClick={() => setSelectedDlqItem(item)}
+                  className="row-hover tabular-nums"
+                  onClick={() => handleSelectDlqItem(item)}
                   {...stylex.props(styles.dlqRow, styles.dlqRowHover)}
                 >
                   <div>

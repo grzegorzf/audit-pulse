@@ -1,7 +1,7 @@
 'use client';
 
 import * as stylex from '@stylexjs/stylex';
-import { colors, typography } from '../styles/tokens.stylex';
+import { colors, typography, motion } from '../styles/tokens.stylex';
 import { useStreamStore } from '../lib/store';
 import { ingestionManager } from '../lib/sse-client';
 import { TargetEndpoint } from '../lib/types';
@@ -125,6 +125,7 @@ const styles = stylex.create({
   chipValue: {
     color: colors.textPrimary,
     fontWeight: 600,
+    fontVariantNumeric: 'tabular-nums',
   },
   actionsGroup: {
     display: 'flex',
@@ -172,7 +173,7 @@ const styles = stylex.create({
     borderColor: 'transparent',
     backgroundColor: 'transparent',
     color: colors.textSecondary,
-    transition: 'all 0.15s ease-in-out',
+    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
     outline: 'none',
     userSelect: 'none',
   },
@@ -218,6 +219,7 @@ const styles = stylex.create({
     display: 'flex',
     alignItems: 'center',
     gap: '5px',
+    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
   },
 });
 
@@ -227,6 +229,16 @@ export default function HeaderTelemetry() {
   const setTargetEndpoint = useStreamStore((s) => s.setTargetEndpoint);
   const metrics = useStreamStore((s) => s.metrics);
   const memoryEstimateMb = useStreamStore((s) => s.memoryEstimateMb);
+
+  const switchEndpoint = (endpoint: TargetEndpoint) => {
+    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+      (document as any).startViewTransition(() => {
+        setTargetEndpoint(endpoint);
+      });
+    } else {
+      setTargetEndpoint(endpoint);
+    }
+  };
 
   const getStatusStyle = () => {
     switch (connectionStatus) {
@@ -311,13 +323,13 @@ export default function HeaderTelemetry() {
       </div>
 
       <div {...stylex.props(styles.actionsGroup)}>
-        {/* Prominent Segmented Toggle: LIVE JVM vs BROWSER MOCK */}
-        <div {...stylex.props(styles.modeSwitchContainer)}>
+        {/* Prominent Segmented Toggle: LIVE JVM vs BROWSER MOCK with View Transitions */}
+        <div className="feed-toggle-root" {...stylex.props(styles.modeSwitchContainer)}>
           <span {...stylex.props(styles.modeLabel)}>FEED:</span>
 
           <button
             type="button"
-            onClick={() => setTargetEndpoint('BACKEND_LOCAL')}
+            onClick={() => switchEndpoint('BACKEND_LOCAL')}
             {...stylex.props(
               styles.modeBtn,
               targetEndpoint === 'BACKEND_LOCAL' && styles.modeBtnActiveLive
@@ -336,7 +348,7 @@ export default function HeaderTelemetry() {
 
           <button
             type="button"
-            onClick={() => setTargetEndpoint('MOCK_ENGINE')}
+            onClick={() => switchEndpoint('MOCK_ENGINE')}
             {...stylex.props(
               styles.modeBtn,
               targetEndpoint === 'MOCK_ENGINE' && styles.modeBtnActiveMock
@@ -355,7 +367,7 @@ export default function HeaderTelemetry() {
 
           <button
             type="button"
-            onClick={() => setTargetEndpoint('CLOUD_JVM')}
+            onClick={() => switchEndpoint('CLOUD_JVM')}
             {...stylex.props(
               styles.modeBtn,
               targetEndpoint === 'CLOUD_JVM' && styles.modeBtnActiveCloud

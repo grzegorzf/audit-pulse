@@ -85,12 +85,12 @@ export default function ThroughputSparkline() {
     : '';
 
   return (
-    <div {...stylex.props(styles.container)}>
+    <div className="tabular-nums" {...stylex.props(styles.container)}>
       <div {...stylex.props(styles.header)}>
         <span {...stylex.props(styles.title)}>
           <span style={{ color: '#00e5ff' }}>⚡</span> Telemetry Sparkline (60s)
         </span>
-        <div {...stylex.props(styles.legend)}>
+        <div className="tabular-nums" {...stylex.props(styles.legend)}>
           <span {...stylex.props(styles.legendItem)}>
             <span {...stylex.props(styles.dotGreen)} /> ev/s rate
           </span>

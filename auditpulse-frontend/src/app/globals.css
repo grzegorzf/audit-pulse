@@ -1,4 +1,4 @@
-@layer reset, base;
+@layer reset, base, modern;
 
 @layer reset {
   *, *::before, *::after {
@@ -18,6 +18,7 @@
     overflow: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    scrollbar-gutter: stable;
   }
 
   /* Custom Cyberpunk Scrollbar */
@@ -34,5 +35,172 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     background: #334869;
+  }
+}
+
+@layer modern {
+  /* ─── 2026/2027 Typographic Rendering & Balancing ─── */
+  h1, h2, h3, h4, h5, h6, .card-title, .brand-title {
+    text-wrap: balance;
+  }
+
+  p, .card-desc, .error-msg, .alert-desc {
+    text-wrap: pretty;
+  }
+
+  /* ─── Fixed-Width Numerics for High-Throughput Telemetry ─── */
+  .tabular-nums,
+  .metric-value,
+  .seq-number,
+  .price-cell,
+  .size-cell,
+  .time-cell,
+  .chip-value {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* ─── Modern Accessible Focus Rings ─── */
+  :focus-visible {
+    outline: 2px solid #00e5ff;
+    outline-offset: 2px;
+  }
+
+  button:focus:not(:focus-visible),
+  a:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* ─── CSS Corner Geometry & Continuous Curvature (Squircle) ─── */
+  @supports (corner-shape: squircle) {
+    button,
+    input,
+    select,
+    .status-pill,
+    .telemetry-chip,
+    .mode-btn,
+    .modal-surface,
+    .badge,
+    .code-box {
+      corner-shape: squircle;
+    }
+  }
+
+  /* ─── Modern CSS Color Functions (color-mix in srgb) ─── */
+  @supports (color: color-mix(in srgb, red, blue)) {
+    .row-hover:hover {
+      background-color: color-mix(in srgb, #00e5ff 6%, transparent);
+    }
+    .mode-btn-hover:hover {
+      background-color: color-mix(in srgb, currentColor 10%, transparent);
+    }
+  }
+
+  /* ─── CSS Container Queries for Resilient Sub-Pane Layouts ─── */
+  .container-inline,
+  .dlq-drawer-root,
+  .trade-table-root {
+    container-type: inline-size;
+  }
+
+  /* ─── Native View Transitions API Level 2 ─── */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.22s;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  ::view-transition-old(root) {
+    animation-name: pulse-view-fade-out;
+  }
+
+  ::view-transition-new(root) {
+    animation-name: pulse-view-fade-in;
+  }
+
+  @keyframes pulse-view-fade-out {
+    from {
+      opacity: 1;
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(0.996);
+    }
+  }
+
+  @keyframes pulse-view-fade-in {
+    from {
+      opacity: 0;
+      transform: scale(1.004);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Scoped View Transition Names */
+  .feed-toggle-root {
+    view-transition-name: feed-toggle;
+  }
+
+  .dlq-drawer-root {
+    view-transition-name: dlq-drawer;
+  }
+
+  .trade-table-root {
+    view-transition-name: trade-table;
+  }
+
+  /* ─── Scroll-Driven Reading/Tape Progress (Compositor Thread) ─── */
+  .table-scroll-track {
+    position: relative;
+  }
+
+  .table-scroll-track::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #00ff88, #00e5ff, #b388ff);
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+    opacity: 0.85;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  @supports (animation-timeline: scroll()) {
+    .table-scroll-track::after {
+      animation: tape-scroll-progress linear;
+      animation-timeline: scroll();
+    }
+
+    @keyframes tape-scroll-progress {
+      from {
+        transform: scaleX(0);
+      }
+      to {
+        transform: scaleX(1);
+      }
+    }
+  }
+
+  /* ─── WCAG 2.2 AA Reduced Motion Compliance ─── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation: none !important;
+    }
   }
 }

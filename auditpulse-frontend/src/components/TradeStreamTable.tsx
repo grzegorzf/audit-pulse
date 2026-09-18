@@ -102,10 +102,12 @@ const styles = stylex.create({
   },
   colTime: {
     color: colors.textMuted,
+    fontVariantNumeric: 'tabular-nums',
   },
   colSeq: {
     color: colors.neonCyan,
     fontWeight: 600,
+    fontVariantNumeric: 'tabular-nums',
   },
   colPair: {
     color: colors.textPrimary,
@@ -114,16 +116,20 @@ const styles = stylex.create({
   colPriceBuy: {
     color: colors.neonGreen,
     fontWeight: 600,
+    fontVariantNumeric: 'tabular-nums',
   },
   colPriceSell: {
     color: colors.neonRed,
     fontWeight: 600,
+    fontVariantNumeric: 'tabular-nums',
   },
   colSize: {
     color: colors.textPrimary,
+    fontVariantNumeric: 'tabular-nums',
   },
   colValue: {
     color: colors.textSecondary,
+    fontVariantNumeric: 'tabular-nums',
   },
   emptyState: {
     height: '100%',
@@ -187,9 +193,9 @@ export default function TradeStreamTable() {
   };
 
   return (
-    <div {...stylex.props(styles.tableContainer)}>
-      {/* Sticky Table Header */}
-      <div {...stylex.props(styles.headerRow)}>
+    <div className="trade-table-root" {...stylex.props(styles.tableContainer)}>
+      {/* Sticky Table Header with Compositor Scroll Track */}
+      <div className="table-scroll-track" {...stylex.props(styles.headerRow)}>
         <div>Time</div>
         <div>Sequence</div>
         <div>Pair</div>
@@ -224,6 +230,7 @@ export default function TradeStreamTable() {
               return (
                 <div
                   key={virtualRow.key}
+                  className="row-hover tabular-nums"
                   {...stylex.props(
                     styles.row,
                     isBuy ? styles.rowBuy : styles.rowSell

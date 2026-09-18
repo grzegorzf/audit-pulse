@@ -49,7 +49,7 @@ const styles = stylex.create({
     fontWeight: 600,
     cursor: 'pointer',
     borderRadius: '3px',
-    transition: 'all 0.15s ease',
+    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
   },
   pairBtnActive: {
     backgroundColor: colors.bgActive,
@@ -67,6 +67,7 @@ const styles = stylex.create({
     paddingLeft: '8px',
     paddingRight: '8px',
     height: '28px',
+    transition: 'border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
   },
   searchInput: {
     backgroundColor: 'transparent',
@@ -99,6 +100,7 @@ const styles = stylex.create({
     fontSize: '11px',
     fontFamily: typography.fontMono,
     cursor: 'pointer',
+    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
   },
   iconBtnPaused: {
     backgroundColor: colors.neonAmberBg,
@@ -109,6 +111,7 @@ const styles = stylex.create({
     fontSize: '11px',
     fontFamily: typography.fontMono,
     color: colors.textMuted,
+    fontVariantNumeric: 'tabular-nums',
   },
 });
 
@@ -122,14 +125,35 @@ export default function FilterBar() {
   const clearTrades = useStreamStore((s) => s.clearTrades);
   const tradeCount = useStreamStore((s) => s.trades.length);
 
+  const handleSelectProduct = (product: string) => {
+    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+      (document as any).startViewTransition(() => {
+        setSelectedProduct(product);
+      });
+    } else {
+      setSelectedProduct(product);
+    }
+  };
+
+  const pairs = ['BTC-USD', 'ETH-USD', 'SOL-USD'];
+
   return (
     <div {...stylex.props(styles.bar)}>
       <div {...stylex.props(styles.left)}>
         <div {...stylex.props(styles.btnGroup)}>
-          {(['BTC-USD', 'ETH-USD', 'ALL'] as const).map((pair) => (
+          <button
+            onClick={() => handleSelectProduct('ALL')}
+            {...stylex.props(
+              styles.pairBtn,
+              selectedProduct === 'ALL' && styles.pairBtnActive
+            )}
+          >
+            ALL
+          </button>
+          {pairs.map((pair) => (
             <button
               key={pair}
-              onClick={() => setSelectedProduct(pair)}
+              onClick={() => handleSelectProduct(pair)}
               {...stylex.props(
                 styles.pairBtn,
                 selectedProduct === pair && styles.pairBtnActive
