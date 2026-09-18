@@ -228,14 +228,22 @@ Generates fully optimized static HTML/CSS/JS in `auditpulse-frontend/out/` confi
 
 ## 🧪 Testing & Verification
 
-### Backend Verification
+### Run All Suites (1-Click)
+```bash
+./test.sh
+```
+Executes all 20 Java 25 backend tests across 5 Maven modules and all 12 TypeScript frontend / Mock Engine tests.
+
+### Backend Verification (Java 25 LTS)
 ```bash
 cd auditpulse-backend
 mvn clean test
 ```
 - **Domain Invariant Tests:** `SequenceTrackerTest` validates strict monotonic invariant enforcement.
 - **Clean Architecture Rules:** Architecture boundary verification ensuring zero framework leakage into domain core.
+- **Use Case Orchestration:** `IngestTradeUseCaseTest`, `QueryDlqUseCaseTest`, `ReconcileDlqUseCaseTest`.
 - **Coinbase Message Parsing:** Pattern matching record tests against real Coinbase execution frames.
+- **Sliding-Window RingBuffer:** `RingBufferMetricsAggregatorTest` telemetry rate calculation.
 
 ### Frontend & Mock Engine Verification
 ```bash
@@ -247,6 +255,7 @@ pnpm tsc --noEmit
 - **`PriceMotionEngine` Tests:** Geometric Brownian motion simulation for `BTC-USD` and `ETH-USD`.
 - **`InMemoryMockDlqRepository` Tests:** Storage limits, chronological ordering, pagination, reconciliation.
 - **`MockEngineFacade` Tests:** Complete end-to-end integration and message dispatch.
+- **`StreamStore` Tests:** Zustand reactive state, trade buffering (capped at 15k), feed target transitions.
 
 ---
 
