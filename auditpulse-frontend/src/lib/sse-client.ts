@@ -6,7 +6,6 @@ class IngestionManager {
   private dlqSource: EventSource | null = null;
   private metricsSource: EventSource | null = null;
   private mockWorker: Worker | null = null;
-  private isConnecting = false;
   private reconnectTimer: any = null;
 
   public init() {
@@ -54,10 +53,11 @@ class IngestionManager {
       this.tradeSource.onopen = () => {
         if (!connectionFailed) {
           useStreamStore.getState().setConnectionStatus('ONLINE');
+          this.fetchInitialDlq(baseUrl, product);
         }
       };
 
-      this.tradeSource.onmessage = (e) => {
+      const handleTrade = (e: MessageEvent) => {
         try {
           const trade: TradeMatch = JSON.parse(e.data);
           useStreamStore.getState().addTradesBatch([trade]);
@@ -66,25 +66,28 @@ class IngestionManager {
         }
       };
 
+      // Support both named SSE 'trade' event and fallback 'message'
+      this.tradeSource.addEventListener('trade', handleTrade);
+      this.tradeSource.onmessage = handleTrade;
+
       this.tradeSource.onerror = () => {
         connectionFailed = true;
         this.handleConnectionFailure();
       };
 
-      this.dlqSource.onmessage = (e) => {
+      const handleDlq = (e: MessageEvent) => {
         try {
           const anomaly = JSON.parse(e.data);
-          // Convert to DeadLetter format if needed
           const dlq: DeadLetter = {
-            id: 'dlq-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+            id: anomaly.id || 'dlq-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
             tradeId: anomaly.tradeId || null,
             productPair: anomaly.productPair || product,
             receivedSequence: anomaly.receivedSequence || null,
             expectedSequence: anomaly.expectedSequence || null,
-            reason: anomaly.gapSize ? 'GAP_DETECTED' : 'UNEXPECTED_PAYLOAD',
-            rawPayload: JSON.stringify(anomaly, null, 2),
-            timestamp: anomaly.occurredAt || new Date().toISOString(),
-            reconciled: false,
+            reason: anomaly.gapSize ? 'GAP_DETECTED' : (anomaly.reason || 'UNEXPECTED_PAYLOAD'),
+            rawPayload: typeof anomaly.rawPayload === 'string' ? anomaly.rawPayload : JSON.stringify(anomaly, null, 2),
+            timestamp: anomaly.occurredAt || anomaly.timestamp || new Date().toISOString(),
+            reconciled: anomaly.reconciled || false,
           };
           useStreamStore.getState().addDeadLetter(dlq);
         } catch (err) {
@@ -92,7 +95,10 @@ class IngestionManager {
         }
       };
 
-      this.metricsSource.onmessage = (e) => {
+      this.dlqSource.addEventListener('anomaly', handleDlq);
+      this.dlqSource.onmessage = handleDlq;
+
+      const handleMetrics = (e: MessageEvent) => {
         try {
           const metrics: MetricsSnapshot = JSON.parse(e.data);
           useStreamStore.getState().setMetrics(metrics);
@@ -100,9 +106,26 @@ class IngestionManager {
           console.error('Failed to parse metrics frame:', err);
         }
       };
+
+      this.metricsSource.addEventListener('metrics', handleMetrics);
+      this.metricsSource.onmessage = handleMetrics;
     } catch (err) {
       this.handleConnectionFailure();
     }
+  }
+
+  private fetchInitialDlq(baseUrl: string, product: string) {
+    const productParam = product === 'ALL' ? '' : `?product=${encodeURIComponent(product)}`;
+    fetch(`${baseUrl}/api/v1/dlq${productParam}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && Array.isArray(data.items)) {
+          useStreamStore.getState().setDlqItems(data.items);
+        }
+      })
+      .catch((err) => {
+        console.warn('Initial DLQ fetch skipped:', err.message);
+      });
   }
 
   private handleConnectionFailure() {
@@ -148,9 +171,45 @@ class IngestionManager {
     }
   }
 
-  public triggerManualGap() {
-    if (this.mockWorker) {
-      this.mockWorker.postMessage({ type: 'TRIGGER_GAP' });
+  public async triggerManualGap() {
+    const store = useStreamStore.getState();
+    if (store.targetEndpoint === 'MOCK_ENGINE') {
+      if (this.mockWorker) {
+        this.mockWorker.postMessage({ type: 'TRIGGER_GAP' });
+      }
+    } else {
+      // Trigger via backend simulation endpoint
+      const baseUrl = store.targetEndpoint === 'CLOUD_JVM'
+        ? (process.env.NEXT_PUBLIC_CLOUD_API_URL || 'https://api.auditpulse.internal')
+        : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8840');
+
+      const product = store.selectedProduct === 'ALL' ? 'BTC-USD' : store.selectedProduct;
+      try {
+        await fetch(`${baseUrl}/api/v1/simulate/gap?product=${encodeURIComponent(product)}`, {
+          method: 'POST',
+        });
+      } catch (err) {
+        console.warn('Failed to invoke backend gap simulation:', err);
+      }
+    }
+  }
+
+  public async reconcileRemote(id: string) {
+    const store = useStreamStore.getState();
+    store.reconcileDeadLetter(id);
+
+    if (store.targetEndpoint !== 'MOCK_ENGINE') {
+      const baseUrl = store.targetEndpoint === 'CLOUD_JVM'
+        ? (process.env.NEXT_PUBLIC_CLOUD_API_URL || 'https://api.auditpulse.internal')
+        : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8840');
+
+      try {
+        await fetch(`${baseUrl}/api/v1/dlq/${encodeURIComponent(id)}/reconcile`, {
+          method: 'POST',
+        });
+      } catch (err) {
+        console.warn('Backend reconcile error:', err);
+      }
     }
   }
 

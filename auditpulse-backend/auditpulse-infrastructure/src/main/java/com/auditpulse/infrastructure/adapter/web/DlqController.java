@@ -1,5 +1,7 @@
 package com.auditpulse.infrastructure.adapter.web;
 
+import com.auditpulse.application.dto.IngestionCommand;
+import com.auditpulse.application.usecase.IngestTradeUseCase;
 import com.auditpulse.application.usecase.QueryDlqUseCase;
 import com.auditpulse.application.usecase.ReconcileDlqUseCase;
 import com.auditpulse.domain.event.DomainEvent;
@@ -13,11 +15,12 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -31,15 +34,18 @@ public class DlqController {
     private final ReactiveTradeEventPublisher eventPublisher;
     private final QueryDlqUseCase queryDlqUseCase;
     private final ReconcileDlqUseCase reconcileDlqUseCase;
+    private final IngestTradeUseCase ingestTradeUseCase;
 
     public DlqController(
             ReactiveTradeEventPublisher eventPublisher,
             QueryDlqUseCase queryDlqUseCase,
-            ReconcileDlqUseCase reconcileDlqUseCase
+            ReconcileDlqUseCase reconcileDlqUseCase,
+            IngestTradeUseCase ingestTradeUseCase
     ) {
         this.eventPublisher = eventPublisher;
         this.queryDlqUseCase = queryDlqUseCase;
         this.reconcileDlqUseCase = reconcileDlqUseCase;
+        this.ingestTradeUseCase = ingestTradeUseCase;
     }
 
     /**
@@ -84,5 +90,46 @@ public class DlqController {
         return reconcileDlqUseCase.reconcile(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
+
+    /**
+     * Simulation endpoint to intentionally trigger a sequence gap through the DDD aggregate.
+     */
+    @PostMapping("/api/v1/simulate/gap")
+    public ResponseEntity<Map<String, Object>> simulateGap(
+            @RequestParam(defaultValue = "BTC-USD") String product
+    ) {
+        long baseSeq = 5492040000L + (System.currentTimeMillis() % 100000);
+        // Continuous trade
+        ingestTradeUseCase.ingest(new IngestionCommand(
+                System.currentTimeMillis(),
+                baseSeq,
+                new BigDecimal("67420.50"),
+                new BigDecimal("0.35"),
+                "BUY",
+                Instant.now(),
+                product,
+                "{\"type\":\"match\",\"simulated\":true,\"trade_id\":" + System.currentTimeMillis() + "}"
+        ));
+
+        // Gap trade (+5)
+        long gapSeq = baseSeq + 5;
+        ingestTradeUseCase.ingest(new IngestionCommand(
+                System.currentTimeMillis() + 1,
+                gapSeq,
+                new BigDecimal("67430.00"),
+                new BigDecimal("0.20"),
+                "SELL",
+                Instant.now(),
+                product,
+                "{\"type\":\"match\",\"simulated\":true,\"gap\":4,\"trade_id\":" + (System.currentTimeMillis() + 1) + "}"
+        ));
+
+        return ResponseEntity.ok(Map.of(
+                "status", "GAP_INJECTED",
+                "product", product,
+                "expectedSequence", baseSeq + 1,
+                "receivedSequence", gapSeq
+        ));
     }
 }

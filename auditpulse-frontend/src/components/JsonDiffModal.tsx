@@ -3,6 +3,7 @@
 import * as stylex from '@stylexjs/stylex';
 import { colors, typography } from '../styles/tokens.stylex';
 import { useStreamStore } from '../lib/store';
+import { ingestionManager } from '../lib/sse-client';
 import { AlertTriangle, CheckCircle2, Copy, FileCode, RefreshCw, X } from 'lucide-react';
 import { useState } from 'react';
 
@@ -223,7 +224,7 @@ export default function JsonDiffModal() {
   };
 
   const handleReconcile = () => {
-    reconcileDeadLetter(selectedDlqItem.id);
+    ingestionManager.reconcileRemote(selectedDlqItem.id);
   };
 
   return (

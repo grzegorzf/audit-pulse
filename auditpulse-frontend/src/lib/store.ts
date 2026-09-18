@@ -45,7 +45,7 @@ export const useStreamStore = create<StreamStore>((set) => ({
   },
   metricsHistory: [],
   connectionStatus: 'CONNECTING',
-  targetEndpoint: 'MOCK_ENGINE', // Defaults to mock engine for immediate GitHub Pages interactivity
+  targetEndpoint: 'BACKEND_LOCAL', // Connects to Spring Boot backend first, with auto-fallback to Web Worker
   selectedProduct: 'BTC-USD',
   isStreamPaused: false,
   filterQuery: '',
