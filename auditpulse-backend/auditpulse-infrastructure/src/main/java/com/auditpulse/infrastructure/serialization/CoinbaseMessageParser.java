@@ -74,24 +74,21 @@ public class CoinbaseMessageParser {
      */
     public Optional<IngestionCommand> toIngestionCommand(CoinbaseMessage message, String rawPayload) {
         return switch (message) {
-            case CoinbaseMessage.CoinbaseMatch(
-                    long tradeId,
-                    long sequence,
-                    BigDecimal price,
-                    BigDecimal size,
-                    String side,
-                    Instant time,
-                    String productId
-            ) -> Optional.of(new IngestionCommand(
-                    tradeId,
-                    sequence,
-                    price,
-                    size,
-                    side,
-                    time,
-                    productId,
-                    rawPayload
-            ));
+            case CoinbaseMessage.CoinbaseMatch m -> {
+                // On Coinbase Exchange WebSocket, trade_id is the monotonic match sequence (N, N+1, N+2...)
+                // Order-book 'sequence' jumps on non-trade events (limit orders/cancels)
+                long monotonicSequence = m.tradeId() > 0 ? m.tradeId() : m.sequence();
+                yield Optional.of(new IngestionCommand(
+                        m.tradeId(),
+                        monotonicSequence,
+                        m.price(),
+                        m.size(),
+                        m.side(),
+                        m.time(),
+                        m.productId(),
+                        rawPayload
+                ));
+            }
             case CoinbaseMessage.CoinbaseHeartbeat ignored -> Optional.empty();
             case CoinbaseMessage.CoinbaseError ignored -> Optional.empty();
             case CoinbaseMessage.CoinbaseUnknown ignored -> Optional.empty();

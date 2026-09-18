@@ -119,8 +119,9 @@ class IngestTradeUseCaseTest {
                 1005L, 50005L, new BigDecimal("60050.00"), new BigDecimal("0.2"), "SELL", Instant.now(), "BTC-USD", "{\"raw\":\"gap\"}"
         ));
 
-        assertThat(publishedEvents).hasSize(2);
+        assertThat(publishedEvents).hasSize(3);
         assertThat(publishedEvents.get(1)).isInstanceOf(SequenceGapDetectedEvent.class);
+        assertThat(publishedEvents.get(2)).isInstanceOf(TradeIngestedEvent.class);
 
         assertThat(savedDeadLetters).hasSize(1);
         DeadLetter dlq = savedDeadLetters.get(0);

@@ -90,6 +90,8 @@ public class IngestTradeUseCase {
                 );
                 dlqRepositoryPort.save(deadLetter);
                 eventPublisherPort.publish(gap);
+                eventPublisherPort.publish(TradeIngestedEvent.now(trade));
+                metricsPort.recordTrade(trade);
                 metricsPort.recordGap(gap);
                 metricsPort.recordDeadLetter(deadLetter);
             }

@@ -51,10 +51,7 @@ class IngestionManager {
     this.cleanup();
     setStatus('CONNECTING');
 
-    const baseUrl = endpoint === 'CLOUD_JVM'
-      ? (process.env.NEXT_PUBLIC_CLOUD_API_URL || 'https://api.auditpulse.internal')
-      : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8840');
-
+    const baseUrl = this.getBaseUrl(endpoint);
     this.connectLiveBackend(baseUrl, product);
   }
 
@@ -145,18 +142,45 @@ class IngestionManager {
       });
   }
 
+  private getBaseUrl(endpoint: TargetEndpoint): string {
+    if (endpoint === 'CLOUD_JVM') {
+      return process.env.NEXT_PUBLIC_CLOUD_API_URL || 'https://api.auditpulse.internal';
+    }
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      return process.env.NEXT_PUBLIC_API_URL;
+    }
+    if (typeof window !== 'undefined') {
+      // In local dev server (port 3000), target Spring Boot backend directly
+      if (window.location.port === '3000') {
+        return 'http://localhost:8840';
+      }
+      // When served via Nginx in Docker (e.g. port 3840 or 80), use relative origin so /api is reverse-proxied
+      return '';
+    }
+    return 'http://localhost:8840';
+  }
+
   private handleConnectionFailure() {
-    console.warn('Backend SSE connection unavailable. Falling back to Browser Mock Engine.');
+    console.warn('Backend SSE connection degraded or disconnected.');
     useStreamStore.getState().setConnectionStatus('DEGRADED');
 
-    // Auto-fallback to mock engine after 2.5s if backend is not responding
-    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-    this.reconnectTimer = setTimeout(() => {
-      const currentStatus = useStreamStore.getState().connectionStatus;
-      if (currentStatus !== 'ONLINE') {
-        useStreamStore.getState().setTargetEndpoint('MOCK_ENGINE');
-      }
-    }, 2500);
+    const isBrowser = typeof window !== 'undefined';
+    const isGitHubPages =
+      isBrowser &&
+      (window.location.hostname.includes('github.io') ||
+       process.env.NEXT_PUBLIC_FORCE_MOCK === 'true' ||
+       process.env.NEXT_PUBLIC_BASE_PATH === '/audit-pulse');
+
+    // Only auto-fallback on static GitHub Pages
+    if (isGitHubPages) {
+      if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = setTimeout(() => {
+        const currentStatus = useStreamStore.getState().connectionStatus;
+        if (currentStatus !== 'ONLINE') {
+          useStreamStore.getState().setTargetEndpoint('MOCK_ENGINE');
+        }
+      }, 2500);
+    }
   }
 
   private startMockWorker(product: string) {
@@ -196,10 +220,7 @@ class IngestionManager {
       }
     } else {
       // Trigger via backend simulation endpoint
-      const baseUrl = store.targetEndpoint === 'CLOUD_JVM'
-        ? (process.env.NEXT_PUBLIC_CLOUD_API_URL || 'https://api.auditpulse.internal')
-        : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8840');
-
+      const baseUrl = this.getBaseUrl(store.targetEndpoint);
       const product = store.selectedProduct === 'ALL' ? 'BTC-USD' : store.selectedProduct;
       try {
         await fetch(`${baseUrl}/api/v1/simulate/gap?product=${encodeURIComponent(product)}`, {
@@ -222,10 +243,7 @@ class IngestionManager {
       return;
     }
 
-    const baseUrl = store.targetEndpoint === 'CLOUD_JVM'
-      ? (process.env.NEXT_PUBLIC_CLOUD_API_URL || 'https://api.auditpulse.internal')
-      : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8840');
-
+    const baseUrl = this.getBaseUrl(store.targetEndpoint);
     try {
       await fetch(`${baseUrl}/api/v1/dlq/${encodeURIComponent(id)}/reconcile`, {
         method: 'POST',

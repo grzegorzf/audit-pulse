@@ -6,6 +6,8 @@ import com.auditpulse.application.usecase.QueryDlqUseCase;
 import com.auditpulse.application.usecase.ReconcileDlqUseCase;
 import com.auditpulse.domain.event.DomainEvent;
 import com.auditpulse.domain.model.DeadLetter;
+import com.auditpulse.domain.model.ProductPair;
+import com.auditpulse.domain.model.SequenceTracker;
 import com.auditpulse.infrastructure.adapter.streaming.ReactiveTradeEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -106,36 +108,47 @@ public class DlqController {
     public ResponseEntity<Map<String, Object>> simulateGap(
             @RequestParam(defaultValue = "BTC-USD") String product
     ) {
-        long baseSeq = 5492040000L + (System.currentTimeMillis() % 100000);
-        // Continuous trade
-        ingestTradeUseCase.ingest(new IngestionCommand(
-                System.currentTimeMillis(),
-                baseSeq,
-                new BigDecimal("67420.50"),
-                new BigDecimal("0.35"),
-                "BUY",
-                Instant.now(),
-                product,
-                "{\"type\":\"match\",\"simulated\":true,\"trade_id\":" + System.currentTimeMillis() + "}"
-        ));
+        ProductPair pair = ProductPair.of(product);
+        SequenceTracker tracker = ingestTradeUseCase.getTracker(pair);
 
-        // Gap trade (+5)
-        long gapSeq = baseSeq + 5;
+        long expectedSeq;
+        long gapSeq;
+
+        if (tracker != null && tracker.nextExpectedSequence() > 0) {
+            expectedSeq = tracker.nextExpectedSequence();
+            gapSeq = expectedSeq + 5;
+        } else {
+            long baseSeq = 5492040000L + (System.currentTimeMillis() % 100000);
+            ingestTradeUseCase.ingest(new IngestionCommand(
+                    System.currentTimeMillis(),
+                    baseSeq,
+                    new BigDecimal("67420.50"),
+                    new BigDecimal("0.35"),
+                    "BUY",
+                    Instant.now(),
+                    pair.value(),
+                    "{\"type\":\"match\",\"simulated\":true,\"trade_id\":" + System.currentTimeMillis() + "}"
+            ));
+            expectedSeq = baseSeq + 1;
+            gapSeq = baseSeq + 5;
+        }
+
+        long tradeId = System.currentTimeMillis() + 1;
         ingestTradeUseCase.ingest(new IngestionCommand(
-                System.currentTimeMillis() + 1,
+                tradeId,
                 gapSeq,
                 new BigDecimal("67430.00"),
                 new BigDecimal("0.20"),
                 "SELL",
                 Instant.now(),
-                product,
-                "{\"type\":\"match\",\"simulated\":true,\"gap\":4,\"trade_id\":" + (System.currentTimeMillis() + 1) + "}"
+                pair.value(),
+                "{\"type\":\"match\",\"simulated\":true,\"gap\":4,\"trade_id\":" + tradeId + "}"
         ));
 
         return ResponseEntity.ok(Map.of(
                 "status", "GAP_INJECTED",
-                "product", product,
-                "expectedSequence", baseSeq + 1,
+                "product", pair.value(),
+                "expectedSequence", expectedSeq,
                 "receivedSequence", gapSeq
         ));
     }

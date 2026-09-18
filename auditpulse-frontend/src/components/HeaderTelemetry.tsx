@@ -131,21 +131,74 @@ const styles = stylex.create({
     alignItems: 'center',
     gap: '10px',
   },
-  select: {
-    backgroundColor: colors.bgCard,
-    color: colors.textPrimary,
+  modeSwitchContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: '#0a0d14',
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: colors.borderDefault,
-    borderRadius: '4px',
+    borderColor: '#1e293b',
+    borderRadius: '6px',
+    padding: '3px',
+    gap: '3px',
+  },
+  modeLabel: {
+    fontFamily: typography.fontMono,
+    fontSize: '10px',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    paddingLeft: '8px',
+    paddingRight: '4px',
+    userSelect: 'none',
+  },
+  modeBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
     paddingTop: '5px',
     paddingBottom: '5px',
-    paddingLeft: '10px',
-    paddingRight: '10px',
+    paddingLeft: '11px',
+    paddingRight: '11px',
+    borderRadius: '4px',
     fontSize: '11px',
     fontFamily: typography.fontMono,
+    fontWeight: 600,
+    letterSpacing: '0.04em',
     cursor: 'pointer',
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
+    color: colors.textSecondary,
+    transition: 'all 0.15s ease-in-out',
     outline: 'none',
+    userSelect: 'none',
+  },
+  modeBtnActiveLive: {
+    backgroundColor: 'rgba(0, 255, 136, 0.15)',
+    borderColor: 'rgba(0, 255, 136, 0.55)',
+    color: '#00ff88',
+    boxShadow: '0 0 12px rgba(0, 255, 136, 0.3)',
+  },
+  modeBtnActiveMock: {
+    backgroundColor: 'rgba(179, 136, 255, 0.18)',
+    borderColor: 'rgba(179, 136, 255, 0.55)',
+    color: '#b388ff',
+    boxShadow: '0 0 12px rgba(179, 136, 255, 0.3)',
+  },
+  modeBtnActiveCloud: {
+    backgroundColor: 'rgba(0, 229, 255, 0.15)',
+    borderColor: 'rgba(0, 229, 255, 0.55)',
+    color: '#00e5ff',
+    boxShadow: '0 0 12px rgba(0, 229, 255, 0.3)',
+  },
+  modeDot: {
+    width: '7px',
+    height: '7px',
+    borderRadius: '50%',
+    display: 'inline-block',
   },
   injectGapBtn: {
     backgroundColor: colors.neonAmberBg,
@@ -258,15 +311,67 @@ export default function HeaderTelemetry() {
       </div>
 
       <div {...stylex.props(styles.actionsGroup)}>
-        <select
-          value={targetEndpoint}
-          onChange={(e) => setTargetEndpoint(e.target.value as TargetEndpoint)}
-          {...stylex.props(styles.select)}
-        >
-          <option value="MOCK_ENGINE">Browser Mock Engine</option>
-          <option value="BACKEND_LOCAL">Localhost (Live JVM)</option>
-          <option value="CLOUD_JVM">Cloud JVM API</option>
-        </select>
+        {/* Prominent Segmented Toggle: LIVE JVM vs BROWSER MOCK */}
+        <div {...stylex.props(styles.modeSwitchContainer)}>
+          <span {...stylex.props(styles.modeLabel)}>FEED:</span>
+
+          <button
+            type="button"
+            onClick={() => setTargetEndpoint('BACKEND_LOCAL')}
+            {...stylex.props(
+              styles.modeBtn,
+              targetEndpoint === 'BACKEND_LOCAL' && styles.modeBtnActiveLive
+            )}
+            title="Connect to Live Spring Boot JVM backend with Coinbase WebSocket match feed"
+          >
+            <span
+              {...stylex.props(styles.modeDot)}
+              style={{
+                backgroundColor: targetEndpoint === 'BACKEND_LOCAL' ? '#00ff88' : '#4b5563',
+                boxShadow: targetEndpoint === 'BACKEND_LOCAL' ? '0 0 6px #00ff88' : 'none',
+              }}
+            />
+            LIVE (JVM)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTargetEndpoint('MOCK_ENGINE')}
+            {...stylex.props(
+              styles.modeBtn,
+              targetEndpoint === 'MOCK_ENGINE' && styles.modeBtnActiveMock
+            )}
+            title="Run high-frequency Browser Mock Engine in Web Worker (Zero backend required)"
+          >
+            <span
+              {...stylex.props(styles.modeDot)}
+              style={{
+                backgroundColor: targetEndpoint === 'MOCK_ENGINE' ? '#b388ff' : '#4b5563',
+                boxShadow: targetEndpoint === 'MOCK_ENGINE' ? '0 0 6px #b388ff' : 'none',
+              }}
+            />
+            MOCK ENGINE
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTargetEndpoint('CLOUD_JVM')}
+            {...stylex.props(
+              styles.modeBtn,
+              targetEndpoint === 'CLOUD_JVM' && styles.modeBtnActiveCloud
+            )}
+            title="Connect to Cloud JVM API"
+          >
+            <span
+              {...stylex.props(styles.modeDot)}
+              style={{
+                backgroundColor: targetEndpoint === 'CLOUD_JVM' ? '#00e5ff' : '#4b5563',
+                boxShadow: targetEndpoint === 'CLOUD_JVM' ? '0 0 6px #00e5ff' : 'none',
+              }}
+            />
+            CLOUD
+          </button>
+        </div>
 
         <button
           onClick={() => ingestionManager.triggerManualGap()}
