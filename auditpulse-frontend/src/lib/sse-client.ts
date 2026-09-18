@@ -37,7 +37,7 @@ class IngestionManager {
 
     const baseUrl = endpoint === 'CLOUD_JVM'
       ? (process.env.NEXT_PUBLIC_CLOUD_API_URL || 'https://api.auditpulse.internal')
-      : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080');
+      : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8840');
 
     this.connectLiveBackend(baseUrl, product);
   }

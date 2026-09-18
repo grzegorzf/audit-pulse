@@ -264,7 +264,7 @@ export default function HeaderTelemetry() {
           {...stylex.props(styles.select)}
         >
           <option value="MOCK_ENGINE">Browser Mock Engine</option>
-          <option value="BACKEND_LOCAL">Localhost:8080 (JVM)</option>
+          <option value="BACKEND_LOCAL">Localhost (Live JVM)</option>
           <option value="CLOUD_JVM">Cloud JVM API</option>
         </select>
 

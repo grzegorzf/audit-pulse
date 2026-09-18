@@ -42,13 +42,27 @@ auditpulse/
 
 ## 🚀 Quickstart & Running Locally
 
+### Centralized Port Configuration (`.env`)
+AuditPulse uses dedicated, collision-resistant unique ports defined centrally in `.env`:
+* **Frontend UI (Next.js + StyleX):** `${AUDITPULSE_FRONTEND_PORT:-3840}` → [http://localhost:3840](http://localhost:3840)
+* **Backend API & SSE (Spring Boot):** `${AUDITPULSE_BACKEND_PORT:-8840}` → [http://localhost:8840](http://localhost:8840)
+* **PostgreSQL 16:** `${AUDITPULSE_POSTGRES_PORT:-5842}` → `localhost:5842`
+
+---
+
 ### Option 1: 1-Click Docker Compose
 ```bash
-docker compose up --build
+./start.sh
+# or: docker compose up --build
 ```
-- **Terminal UI:** [http://localhost:3000](http://localhost:3000)
-- **Spring Boot API & SSE:** [http://localhost:8080](http://localhost:8080)
-- **Postgres Database:** `localhost:5432`
+- **Terminal UI:** [http://localhost:3840](http://localhost:3840)
+- **Spring Boot API & SSE:** [http://localhost:8840](http://localhost:8840)
+- **Postgres Database:** `localhost:5842`
+
+To completely purge all containers, images, volumes, and caches:
+```bash
+./delete.sh
+```
 
 ---
 
@@ -60,7 +74,7 @@ cd auditpulse-backend
 mvn clean test
 mvn spring-boot:run -pl auditpulse-boot
 ```
-API Endpoints:
+API runs on `http://localhost:8840`:
 - `GET /api/v1/stream/trades?product=BTC-USD` (SSE Trade Stream)
 - `GET /api/v1/stream/dlq` (SSE Anomaly & Gap Stream)
 - `GET /api/v1/stream/metrics` (SSE Telemetry Stream every 1000ms)
@@ -73,7 +87,7 @@ cd auditpulse-frontend
 pnpm install --frozen-lockfile
 pnpm dev
 ```
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3840](http://localhost:3840).
 
 #### 3. Static Export for GitHub Pages
 ```bash
