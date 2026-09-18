@@ -46,6 +46,9 @@ build/
 dist/
 .pnpm-store/
 .turbo/
+.test-dist/
+**/.test-dist/
+*.tsbuildinfo
 
 # Logs
 *.log

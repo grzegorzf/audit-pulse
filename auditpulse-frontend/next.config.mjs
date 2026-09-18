@@ -11,7 +11,7 @@ const nextConfig = {
   distDir: 'out',
   trailingSlash: true,
   images: { unoptimized: true },
-  basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || (process.env.GITHUB_PAGES === 'true' ? '/audit-pulse' : ''),
   webpack: (config) => {
     return config;
   }

@@ -9,6 +9,17 @@ class IngestionManager {
   private reconnectTimer: any = null;
 
   public init() {
+    const isBrowser = typeof window !== 'undefined';
+    const isGitHubPages =
+      isBrowser &&
+      (window.location.hostname.includes('github.io') ||
+       process.env.NEXT_PUBLIC_FORCE_MOCK === 'true' ||
+       process.env.NEXT_PUBLIC_BASE_PATH === '/audit-pulse');
+
+    if (isGitHubPages && useStreamStore.getState().targetEndpoint !== 'MOCK_ENGINE') {
+      useStreamStore.getState().setTargetEndpoint('MOCK_ENGINE');
+    }
+
     const store = useStreamStore.getState();
     this.connectTarget(store.targetEndpoint, store.selectedProduct);
 
@@ -24,15 +35,21 @@ class IngestionManager {
   }
 
   public connectTarget(endpoint: TargetEndpoint, product: string) {
-    this.cleanup();
     const setStatus = useStreamStore.getState().setConnectionStatus;
-    setStatus('CONNECTING');
 
     if (endpoint === 'MOCK_ENGINE') {
-      this.startMockWorker(product);
+      this.closeBackendSources();
       setStatus('MOCK_ACTIVE');
+      if (!this.mockWorker) {
+        this.startMockWorker(product);
+      } else {
+        this.mockWorker.postMessage({ type: 'SET_PRODUCT', payload: product });
+      }
       return;
     }
+
+    this.cleanup();
+    setStatus('CONNECTING');
 
     const baseUrl = endpoint === 'CLOUD_JVM'
       ? (process.env.NEXT_PUBLIC_CLOUD_API_URL || 'https://api.auditpulse.internal')
@@ -198,22 +215,27 @@ class IngestionManager {
     const store = useStreamStore.getState();
     store.reconcileDeadLetter(id);
 
-    if (store.targetEndpoint !== 'MOCK_ENGINE') {
-      const baseUrl = store.targetEndpoint === 'CLOUD_JVM'
-        ? (process.env.NEXT_PUBLIC_CLOUD_API_URL || 'https://api.auditpulse.internal')
-        : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8840');
-
-      try {
-        await fetch(`${baseUrl}/api/v1/dlq/${encodeURIComponent(id)}/reconcile`, {
-          method: 'POST',
-        });
-      } catch (err) {
-        console.warn('Backend reconcile error:', err);
+    if (store.targetEndpoint === 'MOCK_ENGINE') {
+      if (this.mockWorker) {
+        this.mockWorker.postMessage({ type: 'RECONCILE', payload: { id } });
       }
+      return;
+    }
+
+    const baseUrl = store.targetEndpoint === 'CLOUD_JVM'
+      ? (process.env.NEXT_PUBLIC_CLOUD_API_URL || 'https://api.auditpulse.internal')
+      : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8840');
+
+    try {
+      await fetch(`${baseUrl}/api/v1/dlq/${encodeURIComponent(id)}/reconcile`, {
+        method: 'POST',
+      });
+    } catch (err) {
+      console.warn('Backend reconcile error:', err);
     }
   }
 
-  public cleanup() {
+  private closeBackendSources() {
     if (this.tradeSource) {
       this.tradeSource.close();
       this.tradeSource = null;
@@ -226,14 +248,18 @@ class IngestionManager {
       this.metricsSource.close();
       this.metricsSource = null;
     }
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+  }
+
+  public cleanup() {
+    this.closeBackendSources();
     if (this.mockWorker) {
       this.mockWorker.postMessage({ type: 'STOP' });
       this.mockWorker.terminate();
       this.mockWorker = null;
-    }
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
     }
   }
 }

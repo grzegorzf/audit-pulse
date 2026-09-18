@@ -57,10 +57,15 @@ jobs:
         working-directory: auditpulse-frontend
         run: pnpm install --frozen-lockfile
 
+      - name: Run Frontend Tests
+        working-directory: auditpulse-frontend
+        run: pnpm test
+
       - name: Build Static Export
         working-directory: auditpulse-frontend
         env:
-          NEXT_PUBLIC_BASE_PATH: ${{ github.repository != '' && format('/{0}', github.event.repository.name) || '' }}
+          GITHUB_PAGES: 'true'
+          NEXT_PUBLIC_BASE_PATH: '/audit-pulse'
         run: pnpm build
 
       - name: Setup Pages

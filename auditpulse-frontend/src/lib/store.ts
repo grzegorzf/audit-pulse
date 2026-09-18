@@ -32,6 +32,13 @@ interface StreamStore {
   clearTrades: () => void;
 }
 
+const isBrowser = typeof window !== 'undefined';
+const isGitHubPages =
+  isBrowser &&
+  (window.location.hostname.includes('github.io') ||
+   process.env.NEXT_PUBLIC_FORCE_MOCK === 'true' ||
+   process.env.NEXT_PUBLIC_BASE_PATH === '/audit-pulse');
+
 export const useStreamStore = create<StreamStore>((set) => ({
   trades: [],
   dlqItems: [],
@@ -45,7 +52,7 @@ export const useStreamStore = create<StreamStore>((set) => ({
   },
   metricsHistory: [],
   connectionStatus: 'CONNECTING',
-  targetEndpoint: 'BACKEND_LOCAL', // Connects to Spring Boot backend first, with auto-fallback to Web Worker
+  targetEndpoint: isGitHubPages ? 'MOCK_ENGINE' : 'BACKEND_LOCAL',
   selectedProduct: 'BTC-USD',
   isStreamPaused: false,
   filterQuery: '',
