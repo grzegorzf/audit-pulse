@@ -1,9 +1,8 @@
-# Stage 1: Build static Next.js export
+# Stage 1: Build static Next.js export with StyleX
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Enable corepack and install pnpm
-RUN corepack enable && corepack prepare pnpm@11.18.0 --activate
+RUN npm install -g pnpm@11.18.0
 
 COPY .npmrc package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
