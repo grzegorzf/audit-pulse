@@ -5,7 +5,8 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "noEmit": false,
+    "rootDir": "src",
     "outDir": "./.test-dist"
   },
-  "include": ["src/mock-engine/**/*"]
+  "include": ["src/mock-engine/**/*", "src/lib/store.ts", "src/lib/types.ts"]
 }
