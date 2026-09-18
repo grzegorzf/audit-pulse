@@ -1,0 +1,19 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: auditpulse-backend
+  threads:
+    virtual:
+      enabled: true
+
+coinbase:
+  websocket:
+    uri: wss://ws-feed.exchange.coinbase.com
+    auto-start: true
+
+logging:
+  level:
+    root: INFO
+    com.auditpulse: INFO
